@@ -8,17 +8,28 @@ import org.springframework.web.bind.annotation.*;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 @RestController
 @RequestMapping("/api/settings")
 public class SettingsController {
 
-    // Only these keys can be read or written.
+    // Fixed keys used by the Drawings and Piercing pages (unchanged).
     private static final Set<String> ALLOWED_KEYS =
             Set.of(
                     "drawings-order", "drawings-hidden",
                     "piercings-order", "piercings-hidden",
                     "tattoos-order", "tattoos-hidden");
+
+    // Work page keys: one order key and one hidden key per category, e.g.
+    // work-order-minimal-line-works, work-hidden-black-grey
+    private static final Pattern WORK_KEY =
+            Pattern.compile("^work-(order|hidden)-[a-z0-9-]{1,60}$");
+
+    private static boolean isAllowed(String key) {
+        return ALLOWED_KEYS.contains(key)
+                || WORK_KEY.matcher(key).matches();
+    }
 
     private final GallerySettingRepository repository;
 
@@ -28,7 +39,7 @@ public class SettingsController {
 
     @GetMapping("/{key}")
     public ResponseEntity<Map<String, Object>> get(@PathVariable String key) {
-        if (!ALLOWED_KEYS.contains(key)) {
+        if (!isAllowed(key)) {
             return ResponseEntity.badRequest().build();
         }
 
@@ -49,7 +60,7 @@ public class SettingsController {
             @PathVariable String key,
             @RequestBody Map<String, String> body) {
 
-        if (!ALLOWED_KEYS.contains(key)) {
+        if (!isAllowed(key)) {
             return ResponseEntity.badRequest().build();
         }
 
