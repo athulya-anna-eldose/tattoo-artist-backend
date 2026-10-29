@@ -68,18 +68,15 @@ public class DrawingServiceImpl implements DrawingService {
 
         var items = repository.findAllById(orderedIds);
 
-        if (items.size() != orderedIds.size()) {
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "One or more drawing IDs do not exist."
-            );
-        }
-
         var byId = new HashMap<Long, Drawing>();
         items.forEach(item -> byId.put(item.getId(), item));
 
-        for (int i = 0; i < orderedIds.size(); i++) {
-            byId.get(orderedIds.get(i)).setDisplayOrder(i);
+        int position = 0;
+        for (Long id : orderedIds) {
+            Drawing drawing = byId.get(id);
+            if (drawing != null) {
+                drawing.setDisplayOrder(position++);
+            }
         }
 
         repository.saveAll(items);
@@ -87,16 +84,13 @@ public class DrawingServiceImpl implements DrawingService {
     @Override
     @Transactional
     public void deleteById(Long id) {
-        Drawing drawing = repository.findById(id)
-                .orElseThrow(() ->
-                        new EntityNotFoundException("Drawing not found: " + id));
-
-        try {
-            imageStorage.deleteImage(drawing.getImageUrl());
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to delete drawing image", e);
-        }
-
-        repository.delete(drawing);
+        repository.findById(id).ifPresent(drawing -> {
+            try {
+                imageStorage.deleteImage(drawing.getImageUrl());
+            } catch (IOException e) {
+                throw new RuntimeException("Failed to delete drawing image", e);
+            }
+            repository.delete(drawing);
+        });
     }
 }
