@@ -15,7 +15,10 @@ public class SettingsController {
 
     // Only these keys can be read or written.
     private static final Set<String> ALLOWED_KEYS =
-            Set.of("drawings-order", "drawings-hidden");
+            Set.of(
+                    "drawings-order", "drawings-hidden",
+                    "piercings-order", "piercings-hidden",
+                    "tattoos-order", "tattoos-hidden");
 
     private final GallerySettingRepository repository;
 

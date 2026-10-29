@@ -1,11 +1,9 @@
-
 package com.example.my_new_project.service.impl;
 
 import com.example.my_new_project.model.Piercing;
 import com.example.my_new_project.repository.PiercingRepository;
 import com.example.my_new_project.service.PiercingService;
 import com.example.my_new_project.storage.ImageStorageService;
-import jakarta.persistence.EntityNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -69,35 +67,32 @@ public class PiercingServiceImpl implements PiercingService {
 
         var items = repository.findAllById(orderedIds);
 
-        if (items.size() != orderedIds.size()) {
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "One or more piercing IDs do not exist."
-            );
-        }
-
         var byId = new HashMap<Long, Piercing>();
         items.forEach(item -> byId.put(item.getId(), item));
 
-        for (int i = 0; i < orderedIds.size(); i++) {
-            byId.get(orderedIds.get(i)).setDisplayOrder(i);
+        // IDs deleted on another device are skipped instead of failing.
+        int position = 0;
+        for (Long id : orderedIds) {
+            Piercing piercing = byId.get(id);
+            if (piercing != null) {
+                piercing.setDisplayOrder(position++);
+            }
         }
 
         repository.saveAll(items);
     }
+
     @Override
     @Transactional
     public void deleteById(Long id) {
-        Piercing piercing = repository.findById(id)
-                .orElseThrow(() ->
-                        new EntityNotFoundException("Piercing not found: " + id));
-
-        try {
-            imageStorage.deleteImage(piercing.getImageUrl());
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to delete piercing image", e);
-        }
-
-        repository.delete(piercing);
+        // Deleting something that is already gone is not an error.
+        repository.findById(id).ifPresent(piercing -> {
+            try {
+                imageStorage.deleteImage(piercing.getImageUrl());
+            } catch (IOException e) {
+                throw new RuntimeException("Failed to delete piercing image", e);
+            }
+            repository.delete(piercing);
+        });
     }
 }
