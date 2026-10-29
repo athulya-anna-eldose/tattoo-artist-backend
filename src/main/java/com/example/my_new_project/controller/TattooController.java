@@ -13,10 +13,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/tattoos")
-@CrossOrigin(origins = {
-        "http://localhost:5173",
-        "http://localhost:3000"
-})
 public class TattooController {
 
     private final TattooService service;
